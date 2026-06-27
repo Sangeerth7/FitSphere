@@ -2,7 +2,9 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework import generics
+from .models import Trainer
+from .serializers import TrainerSerializer
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer
 
@@ -37,3 +39,12 @@ from .serializers import MemberSerializer
 class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
+
+class TrainerListCreateView(generics.ListCreateAPIView):
+    queryset = Trainer.objects.all()
+    serializer_class = TrainerSerializer
+
+
+class TrainerDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Trainer.objects.all()
+    serializer_class = TrainerSerializer

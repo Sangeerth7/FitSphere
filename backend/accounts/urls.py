@@ -10,3 +10,19 @@ urlpatterns = [
     path("login/", LoginView.as_view(), name="login"),
     path("", include(router.urls)),
 ]
+
+
+from .views import (
+    RegisterView,
+    LoginView,
+    TrainerListCreateView,
+    TrainerDetailView,
+)
+
+urlpatterns = [
+    path("register/", RegisterView.as_view()),
+    path("login/", LoginView.as_view()),
+
+    path("trainers/", TrainerListCreateView.as_view()),
+    path("trainers/<int:pk>/", TrainerDetailView.as_view()),
+]
