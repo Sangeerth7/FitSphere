@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User
+from .models import Member, User
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -50,3 +50,8 @@ class LoginSerializer(serializers.Serializer):
 
         data["user"] = user
         return data
+    
+class MemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Member
+        fields = "__all__"
