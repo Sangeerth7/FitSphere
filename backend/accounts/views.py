@@ -1,18 +1,38 @@
-from rest_framework import generics
+from rest_framework import generics, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import generics
-from .models import Trainer
-from .serializers import TrainerSerializer
-from .models import User
-from .serializers import RegisterSerializer, LoginSerializer
-from .models import MembershipPlan
-from .serializers import MembershipPlanSerializer
-from .models import MembershipEnrollment
-from .serializers import MembershipEnrollmentSerializer
-from .models import Payment
-from .serializers import PaymentSerializer
+from rest_framework import filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .models import (
+    User,
+    Member,
+    Trainer,
+    MembershipPlan,
+    MembershipEnrollment,
+    Payment,
+    Exercise,
+    WorkoutPlan,
+    Attendance
+)
+from .serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    MemberSerializer,
+    TrainerSerializer,
+    MembershipPlanSerializer,
+    MembershipEnrollmentSerializer,
+    PaymentSerializer,
+    ExerciseSerializer,
+    WorkoutPlanSerializer,
+    AttendanceSerializer
+)
+from .permissions import (
+    IsAdmin,
+    IsTrainer,
+    IsMember,
+)
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -37,9 +57,6 @@ class LoginView(APIView):
             "username": user.username,
         })
     
-from rest_framework import viewsets
-from .models import Member
-from .serializers import MemberSerializer
 
 class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
@@ -54,18 +71,10 @@ class TrainerDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Trainer.objects.all()
     serializer_class = TrainerSerializer
 
-class MemberListCreateView(generics.ListCreateAPIView):
-    queryset = Member.objects.all()
-    serializer_class = MemberSerializer
-
-
-class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Member.objects.all()
-    serializer_class = MemberSerializer
-
 class MembershipPlanViewSet(viewsets.ModelViewSet):
     queryset = MembershipPlan.objects.all()
     serializer_class = MembershipPlanSerializer
+    permission_classes = [IsAdmin]
 
 class MembershipEnrollmentViewSet(viewsets.ModelViewSet):
     queryset = MembershipEnrollment.objects.all()
@@ -74,3 +83,29 @@ class MembershipEnrollmentViewSet(viewsets.ModelViewSet):
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
+
+class ExerciseViewSet(viewsets.ModelViewSet):
+    queryset = Exercise.objects.all()
+    serializer_class = ExerciseSerializer
+
+class WorkoutPlanViewSet(viewsets.ModelViewSet):
+    queryset = WorkoutPlan.objects.all()
+    serializer_class = WorkoutPlanSerializer
+
+class AttendanceViewSet(viewsets.ModelViewSet):
+    queryset = Attendance.objects.all()
+    serializer_class = AttendanceSerializer
+
+
+class MemberViewSet(viewsets.ModelViewSet):
+    queryset = Member.objects.all()
+    serializer_class = MemberSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    search_fields = ["user__username", "phone"]
+    ordering_fields = ["age", "weight", "join_date"]

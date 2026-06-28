@@ -6,7 +6,9 @@ from .models import Trainer
 from .models import MembershipPlan
 from .models import MembershipEnrollment
 from .models import Payment
-
+from .models import Exercise
+from .models import WorkoutPlan
+from .models import Attendance
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -105,3 +107,19 @@ class PaymentSerializer(serializers.ModelSerializer):
         validated_data["amount"] = enrollment.plan.price
 
         return super().create(validated_data)
+    
+class ExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = "__all__"
+
+
+class WorkoutPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkoutPlan
+        fields = "__all__"
+
+class AttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attendance
+        fields = "__all__"
