@@ -7,7 +7,12 @@ from .models import Trainer
 from .serializers import TrainerSerializer
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer
-
+from .models import MembershipPlan
+from .serializers import MembershipPlanSerializer
+from .models import MembershipEnrollment
+from .serializers import MembershipEnrollmentSerializer
+from .models import Payment
+from .serializers import PaymentSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -48,3 +53,24 @@ class TrainerListCreateView(generics.ListCreateAPIView):
 class TrainerDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Trainer.objects.all()
     serializer_class = TrainerSerializer
+
+class MemberListCreateView(generics.ListCreateAPIView):
+    queryset = Member.objects.all()
+    serializer_class = MemberSerializer
+
+
+class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Member.objects.all()
+    serializer_class = MemberSerializer
+
+class MembershipPlanViewSet(viewsets.ModelViewSet):
+    queryset = MembershipPlan.objects.all()
+    serializer_class = MembershipPlanSerializer
+
+class MembershipEnrollmentViewSet(viewsets.ModelViewSet):
+    queryset = MembershipEnrollment.objects.all()
+    serializer_class = MembershipEnrollmentSerializer
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer

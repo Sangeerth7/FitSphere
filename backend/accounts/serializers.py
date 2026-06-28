@@ -3,6 +3,10 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Member, User
 from .models import Trainer
+from .models import MembershipPlan
+from .models import MembershipEnrollment
+from .models import Payment
+
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -61,3 +65,43 @@ class TrainerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trainer
         fields = "__all__"
+
+
+class MembershipPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MembershipPlan
+        fields = "__all__"
+
+from dateutil.relativedelta import relativedelta
+
+class MembershipEnrollmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MembershipEnrollment
+        fields = "__all__"
+        read_only_fields = ["end_date"]
+
+    def create(self, validated_data):
+        plan = validated_data["plan"]
+        start_date = validated_data["start_date"]
+
+        validated_data["end_date"] = (
+            start_date + relativedelta(months=plan.duration_months)
+        )
+
+        return super().create(validated_data)
+    class Meta:
+        model = MembershipEnrollment
+        fields = "__all__"
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = "__all__"
+        read_only_fields = ["amount"]
+
+    def create(self, validated_data):
+        enrollment = validated_data["enrollment"]
+
+        validated_data["amount"] = enrollment.plan.price
+
+        return super().create(validated_data)
