@@ -45,60 +45,60 @@ class Member(models.Model):
         null=True
     )
 
-address = models.TextField(blank=True, null=True)
-goal = models.CharField(max_length=50, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    goal = models.CharField(max_length=50, blank=True, null=True)
 
-ACTIVITY_LEVEL_CHOICES = [
-    ("sedentary", "Sedentary"),
-    ("light", "Light"),
-    ("moderate", "Moderate"),
-    ("high", "High"),
-    ("very_high", "Very High"),
-]
+    ACTIVITY_LEVEL_CHOICES = [
+        ("sedentary", "Sedentary"),
+        ("light", "Light"),
+        ("moderate", "Moderate"),
+        ("high", "High"),
+        ("very_high", "Very High"),
+    ]
 
-FITNESS_LEVEL_CHOICES = [
-    ("beginner", "Beginner"),
-    ("intermediate", "Intermediate"),
-    ("advanced", "Advanced"),
-]
+    FITNESS_LEVEL_CHOICES = [
+        ("beginner", "Beginner"),
+        ("intermediate", "Intermediate"),
+        ("advanced", "Advanced"),
+    ]
 
-DIET_PREFERENCE_CHOICES = [
-    ("vegetarian", "Vegetarian"),
-    ("non_vegetarian", "Non-Vegetarian"),
-    ("vegan", "Vegan"),
-    ("eggetarian", "Eggetarian"),
-]
+    DIET_PREFERENCE_CHOICES = [
+        ("vegetarian", "Vegetarian"),
+        ("non_vegetarian", "Non-Vegetarian"),
+        ("vegan", "Vegan"),
+        ("eggetarian", "Eggetarian"),
+    ]
 
-activity_level = models.CharField(
-    max_length=20,
-    choices=ACTIVITY_LEVEL_CHOICES,
-    default="moderate",
-)
+    activity_level = models.CharField(
+        max_length=20,
+        choices=ACTIVITY_LEVEL_CHOICES,
+        default="moderate",
+    )
 
-fitness_level = models.CharField(
-    max_length=20,
-    choices=FITNESS_LEVEL_CHOICES,
-    default="beginner",
-)
+    fitness_level = models.CharField(
+        max_length=20,
+        choices=FITNESS_LEVEL_CHOICES,
+        default="beginner",
+    )
 
-diet_preference = models.CharField(
-    max_length=20,
-    choices=DIET_PREFERENCE_CHOICES,
-    default="non_vegetarian",
-)
+    diet_preference = models.CharField(
+        max_length=20,
+        choices=DIET_PREFERENCE_CHOICES,
+        default="non_vegetarian",
+    )
 
-dietary_restrictions = models.TextField(
-    blank=True,
-    null=True,
-)
+    dietary_restrictions = models.TextField(
+        blank=True,
+        null=True,
+    )
 
-join_date = models.DateField(auto_now_add=True)
+    join_date = models.DateField(auto_now_add=True)
 
-created_at = models.DateTimeField(auto_now_add=True)
-updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-def __str__(self):
-     return self.user.username
+    def __str__(self):
+        return self.user.username
 
 
 class Trainer(models.Model):

@@ -4,7 +4,10 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
-from .services.diet_recommender import recommend_diet
+from .services.diet_recommender import (
+    RecommendationInputError,
+    recommend_diet,
+)
 
 from .models import (
     User,
@@ -137,7 +140,13 @@ class GenerateDietPlanView(APIView):
                 status=404
             )
 
-        diet_plan = recommend_diet(member)
+        try:
+            diet_plan = recommend_diet(member)
+        except RecommendationInputError as error:
+            return Response(
+                {"error": str(error)},
+                status=400,
+            )
 
         return Response({
             "message": "Diet plan generated successfully",
