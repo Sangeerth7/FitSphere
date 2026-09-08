@@ -2,8 +2,9 @@ from rest_framework import generics, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import filters
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+from .services.diet_recommender import recommend_diet
 
 from .models import (
     User,
@@ -14,7 +15,9 @@ from .models import (
     Payment,
     Exercise,
     WorkoutPlan,
-    Attendance
+    Attendance,
+    DietPlan,
+    DietMeal
 )
 from .serializers import (
     RegisterSerializer,
@@ -107,5 +110,39 @@ class MemberViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter,
     ]
 
-    search_fields = ["user__username", "phone"]
-    ordering_fields = ["age", "weight", "join_date"]
+    search_fields = [
+        "user__username",
+        "phone",
+        "goal",
+    ]
+
+    ordering_fields = [
+        "age",
+        "weight",
+        "join_date",
+    ]
+
+    filterset_fields = [
+        "gender",
+        "goal",
+    ]
+
+class GenerateDietPlanView(APIView):
+    def post(self, request, member_id):
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response(
+                {"error": "Member not found"},
+                status=404
+            )
+
+        diet_plan = recommend_diet(member)
+
+        return Response({
+            "message": "Diet plan generated successfully",
+            "diet_plan_id": diet_plan.id,
+            "member": member.user.username,
+            "plan_name": diet_plan.name,
+            "goal": diet_plan.goal,
+        })

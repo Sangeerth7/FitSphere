@@ -1,18 +1,25 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import Member, User
-from .models import Trainer
-from .models import MembershipPlan
-from .models import MembershipEnrollment
-from .models import Payment
-from .models import Exercise
-from .models import WorkoutPlan
-from .models import Attendance
+from dateutil.relativedelta import relativedelta
+
+from .models import (
+    User,
+    Member,
+    Trainer,
+    MembershipPlan,
+    MembershipEnrollment,
+    Payment,
+    Exercise,
+    WorkoutPlan,
+    Attendance,
+)
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["username", "email", "password", "role"]
+
         extra_kwargs = {
             "password": {"write_only": True}
         }
@@ -24,22 +31,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data["password"],
             role=validated_data.get("role", "member")
         )
+
         return user
-    
-    from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-class LoginSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-
-        token["username"] = user.username
-        token["role"] = user.role
-
-        return token
-    
-    from django.contrib.auth import authenticate
-from rest_framework import serializers
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -52,11 +46,14 @@ class LoginSerializer(serializers.Serializer):
         )
 
         if not user:
-            raise serializers.ValidationError("Invalid credentials")
+            raise serializers.ValidationError(
+                "Invalid username or password"
+            )
 
         data["user"] = user
         return data
-    
+
+
 class MemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Member
@@ -74,7 +71,6 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
         model = MembershipPlan
         fields = "__all__"
 
-from dateutil.relativedelta import relativedelta
 
 class MembershipEnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -87,13 +83,13 @@ class MembershipEnrollmentSerializer(serializers.ModelSerializer):
         start_date = validated_data["start_date"]
 
         validated_data["end_date"] = (
-            start_date + relativedelta(months=plan.duration_months)
+            start_date + relativedelta(
+                months=plan.duration_months
+            )
         )
 
         return super().create(validated_data)
-    class Meta:
-        model = MembershipEnrollment
-        fields = "__all__"
+
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -107,7 +103,8 @@ class PaymentSerializer(serializers.ModelSerializer):
         validated_data["amount"] = enrollment.plan.price
 
         return super().create(validated_data)
-    
+
+
 class ExerciseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Exercise
@@ -118,6 +115,7 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkoutPlan
         fields = "__all__"
+
 
 class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:

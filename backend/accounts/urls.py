@@ -2,9 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    ExerciseViewSet,
     RegisterView,
     LoginView,
+    GenerateDietPlanView,
     MemberViewSet,
     TrainerListCreateView,
     TrainerDetailView,
@@ -13,7 +13,7 @@ from .views import (
     PaymentViewSet,
     ExerciseViewSet,
     WorkoutPlanViewSet,
-    AttendanceViewSet
+    AttendanceViewSet,
 )
 
 router = DefaultRouter()
@@ -28,7 +28,14 @@ urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),
 
-    # Member CRUD
+    # Generate personalized diet plan
+    path(
+        "members/<int:member_id>/generate-diet/",
+        GenerateDietPlanView.as_view(),
+        name="generate-diet"
+    ),
+
+    # API ViewSets
     path("", include(router.urls)),
 
     # Trainer CRUD
