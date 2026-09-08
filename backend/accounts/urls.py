@@ -5,6 +5,7 @@ from .views import (
     RegisterView,
     LoginView,
     GenerateDietPlanView,
+    GenerateWorkoutPlanView,
     MemberViewSet,
     TrainerListCreateView,
     TrainerDetailView,
@@ -14,6 +15,7 @@ from .views import (
     ExerciseViewSet,
     WorkoutPlanViewSet,
     AttendanceViewSet,
+    DietPlanViewSet,
 )
 
 router = DefaultRouter()
@@ -24,6 +26,7 @@ router.register(r"exercises", ExerciseViewSet, basename="exercises")
 router.register(r"members", MemberViewSet, basename="members")
 router.register(r"workouts", WorkoutPlanViewSet, basename="workouts")
 router.register(r"attendance", AttendanceViewSet, basename="attendance")
+router.register(r"diet-plans", DietPlanViewSet, basename="diet-plans")
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),
@@ -33,6 +36,11 @@ urlpatterns = [
         "members/<int:member_id>/generate-diet/",
         GenerateDietPlanView.as_view(),
         name="generate-diet"
+    ),
+    path(
+        "members/<int:member_id>/generate-workout/",
+        GenerateWorkoutPlanView.as_view(),
+        name="generate-workout"
     ),
 
     # API ViewSets

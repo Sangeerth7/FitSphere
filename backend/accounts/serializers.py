@@ -12,6 +12,8 @@ from .models import (
     Exercise,
     WorkoutPlan,
     Attendance,
+    DietPlan,
+    DietMeal,
 )
 
 
@@ -121,3 +123,28 @@ class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attendance
         fields = "__all__"
+
+
+class DietMealSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DietMeal
+        fields = ["id", "meal_type", "food", "quantity", "notes"]
+
+
+class DietPlanSerializer(serializers.ModelSerializer):
+    meals = DietMealSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = DietPlan
+        fields = [
+            "id",
+            "member",
+            "name",
+            "goal",
+            "description",
+            "calories_target",
+            "created_at",
+            "updated_at",
+            "meals",
+        ]
+        read_only_fields = ["created_at", "updated_at", "meals"]

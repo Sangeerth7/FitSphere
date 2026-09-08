@@ -6,9 +6,12 @@ export const saveTokens = (data) => {
 };
 
 export const logout = () => {
-  localStorage.clear();
+  ["access", "refresh", "role", "username"].forEach((key) => localStorage.removeItem(key));
 };
 
 export const isAuthenticated = () => {
   return !!localStorage.getItem("access");
 };
+
+export const getRole = () => localStorage.getItem("role") || "member";
+export const getUsername = () => localStorage.getItem("username") || "User";

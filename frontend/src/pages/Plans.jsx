@@ -1,0 +1,2 @@
+import ResourcePage from "./ResourcePage";
+export default function Plans() { return <ResourcePage title="Membership plans" eyebrow="Membership" description="Review the plans currently offered by the gym." endpoint="plans/" columns={[{ key: "id", label: "ID" }, { key: "name", label: "Plan" }, { key: "price", label: "Price" }, { key: "duration_months", label: "Duration" }, { key: "active", label: "Status", render: (row) => row.active ? "Active" : "Inactive" }, { key: "description", label: "Description" }]} />; }

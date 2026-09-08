@@ -1,0 +1,2 @@
+import ResourcePage from "./ResourcePage";
+export default function Payments() { return <ResourcePage title="Payments" eyebrow="Finance" description="Review payment records and their current status." endpoint="payments/" columns={[{ key: "id", label: "ID" }, { key: "enrollment", label: "Enrollment" }, { key: "amount", label: "Amount" }, { key: "payment_method", label: "Method" }, { key: "status", label: "Status" }, { key: "payment_date", label: "Date" }]} />; }

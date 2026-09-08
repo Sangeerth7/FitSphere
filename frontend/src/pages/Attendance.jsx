@@ -1,0 +1,2 @@
+import ResourcePage from "./ResourcePage";
+export default function Attendance() { return <ResourcePage title="Attendance" eyebrow="Daily operations" description="Monitor check-ins and attendance status across the gym." endpoint="attendance/" columns={[{ key: "id", label: "ID" }, { key: "member", label: "Member" }, { key: "date", label: "Date" }, { key: "check_in", label: "Check in" }, { key: "check_out", label: "Check out" }, { key: "status", label: "Status" }]} />; }

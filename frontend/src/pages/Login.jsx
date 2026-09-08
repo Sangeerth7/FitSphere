@@ -1,60 +1,15 @@
 import { useState } from "react";
+import { FiArrowRight, FiLock, FiUser } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { saveTokens } from "../utils/auth";
 
-function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await api.post("login/", { username, password });
-      console.log(response.data);
-    } catch (error) {
-      console.error("Login failed:", error);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        className="bg-white p-8 rounded-2xl shadow-xl w-96"
-        onSubmit={handleSubmit}
-      >
-        <h1 className="text-3xl font-bold text-center text-blue-600">
-          FitSphere
-        </h1>
-
-        <p className="text-center text-gray-500 mt-2 mb-6">
-          Welcome Back 👋
-        </p>
-
-        <input
-          type="text"
-          placeholder="Username"
-          className="w-full border rounded-lg p-3 mb-4"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border rounded-lg p-3 mb-6"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button
-  type="submit"
-  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold"
->
-  Login
-</button>
-          Login
-      </form>
-    </div>
-  );
+export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = async (event) => { event.preventDefault(); setLoading(true); setError(""); try { const { data } = await api.post("login/", form); saveTokens(data); navigate(location.state?.from?.pathname || "/", { replace: true }); } catch (requestError) { setError(requestError.response?.data?.detail || requestError.response?.data?.non_field_errors?.[0] || "Login failed. Check your credentials and try again."); } finally { setLoading(false); } };
+  return <div className="grid min-h-screen bg-[#f6f8f7] lg:grid-cols-[1.1fr_0.9fr]"><div className="relative hidden overflow-hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between"><div className="absolute -right-20 top-20 h-80 w-80 rounded-full border-[40px] border-teal-500/20" /><div className="relative"><div className="mb-16 flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-xl bg-teal-500 text-xl font-black">F</div><span className="font-display text-2xl font-bold">FitSphere</span></div><p className="max-w-lg font-display text-6xl font-bold leading-[1.02] tracking-tight">The gym, <span className="text-teal-400">in rhythm.</span></p><p className="mt-6 max-w-md text-lg leading-8 text-slate-400">A clear operational home for members, coaches, plans, and progress.</p></div><p className="relative text-sm text-slate-500">Member operations platform · 2026</p></div><div className="flex items-center justify-center p-6 sm:p-12"><form onSubmit={submit} className="w-full max-w-md"><p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-600">Welcome back</p><h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-slate-900">Sign in to FitSphere</h1><p className="mt-3 text-sm leading-6 text-slate-500">Use your gym account to continue to the operations workspace.</p>{error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}<label className="mt-8 block text-sm font-bold text-slate-700">Username<div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 focus-within:border-teal-500"><FiUser className="text-slate-400" /><input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="w-full border-0 py-3 outline-none" placeholder="your username" /></div></label><label className="mt-5 block text-sm font-bold text-slate-700">Password<div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 focus-within:border-teal-500"><FiLock className="text-slate-400" /><input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full border-0 py-3 outline-none" placeholder="your password" /></div></label><button disabled={loading} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-3.5 font-bold text-white shadow-lg shadow-teal-600/20 transition hover:bg-teal-700 disabled:opacity-60">{loading ? "Signing in..." : "Enter workspace"}<FiArrowRight /></button></form></div></div>;
 }
-
-export default Login;

@@ -1,0 +1,2 @@
+import ResourcePage from "./ResourcePage";
+export default function Enrollments() { return <ResourcePage title="Enrollments" eyebrow="Membership" description="Track membership start dates, expiry, and current status." endpoint="enrollments/" columns={[{ key: "id", label: "ID" }, { key: "member", label: "Member" }, { key: "plan", label: "Plan" }, { key: "start_date", label: "Starts" }, { key: "end_date", label: "Ends" }, { key: "status", label: "Status" }]} />; }

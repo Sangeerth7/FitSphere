@@ -1,0 +1,13 @@
+import { useEffect, useState } from "react";
+import { FiZap } from "react-icons/fi";
+import api from "../services/api";
+import ResourcePage from "./ResourcePage";
+import { getRows } from "../utils/response";
+
+function GenerateWorkout() {
+  const [members, setMembers] = useState([]); const [memberId, setMemberId] = useState(""); const [message, setMessage] = useState(""); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
+  useEffect(() => { api.get("members/").then(({ data }) => setMembers(getRows(data))).catch(() => setError("Members could not be loaded.")); }, []);
+  const generate = async () => { if (!memberId) return setError("Select a member first."); setLoading(true); setError(""); setMessage(""); try { const { data } = await api.post(`members/${memberId}/generate-workout/`); setMessage(`${data.plan_name} generated with ${data.exercise_count} exercises.`); } catch (requestError) { setError(requestError.response?.data?.error || "Workout generation failed."); } finally { setLoading(false); } };
+  return <div className="rounded-2xl border border-teal-100 bg-teal-50/60 p-5"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-600 text-white"><FiZap /></div><div><h2 className="font-bold text-slate-900">Generate personalized plan</h2><p className="text-xs text-slate-500">Uses the member profile, goal, activity, and fitness level.</p></div></div><div className="mt-4 flex flex-col gap-3 sm:flex-row"><select value={memberId} onChange={(e) => setMemberId(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"><option value="">Choose a member</option>{members.map((member) => <option key={member.id} value={member.id}>Member #{member.id} {member.goal ? `· ${member.goal}` : ""}</option>)}</select><button onClick={generate} disabled={loading} className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-60">{loading ? "Generating..." : "Generate workout"}</button></div>{error && <p className="mt-3 text-sm text-red-700">{error}</p>}{message && <p className="mt-3 text-sm font-semibold text-teal-800">{message}</p>}</div>;
+}
+export default function Workouts() { return <ResourcePage title="Workout plans" eyebrow="Personalization" description="Review generated and trainer-created workout plans, then generate a new weekly recommendation." endpoint="workouts/" action={<GenerateWorkout />} columns={[{ key: "id", label: "ID" }, { key: "title", label: "Plan" }, { key: "member", label: "Member" }, { key: "trainer", label: "Trainer" }, { key: "description", label: "Details" }]} />; }

@@ -1,0 +1,13 @@
+import { useEffect, useState } from "react";
+import { FiHeart } from "react-icons/fi";
+import api from "../services/api";
+import ResourcePage from "./ResourcePage";
+import { getRows } from "../utils/response";
+
+function GenerateDiet() {
+  const [members, setMembers] = useState([]); const [memberId, setMemberId] = useState(""); const [message, setMessage] = useState(""); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
+  useEffect(() => { api.get("members/").then(({ data }) => setMembers(getRows(data))).catch(() => setError("Members could not be loaded.")); }, []);
+  const generate = async () => { if (!memberId) return setError("Select a member first."); setLoading(true); setError(""); setMessage(""); try { const { data } = await api.post(`members/${memberId}/generate-diet/`); setMessage(`${data.plan_name} generated for ${data.member}.`); } catch (requestError) { setError(requestError.response?.data?.error || "Diet generation failed."); } finally { setLoading(false); } };
+  return <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-5"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500 text-white"><FiHeart /></div><div><h2 className="font-bold text-slate-900">Generate personalized diet</h2><p className="text-xs text-slate-500">Uses goals, body metrics, diet preference, and restrictions.</p></div></div><div className="mt-4 flex flex-col gap-3 sm:flex-row"><select value={memberId} onChange={(e) => setMemberId(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"><option value="">Choose a member</option>{members.map((member) => <option key={member.id} value={member.id}>Member #{member.id} {member.goal ? `· ${member.goal}` : ""}</option>)}</select><button onClick={generate} disabled={loading} className="rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-rose-600 disabled:opacity-60">{loading ? "Generating..." : "Generate diet plan"}</button></div>{error && <p className="mt-3 text-sm text-red-700">{error}</p>}{message && <p className="mt-3 text-sm font-semibold text-rose-800">{message}</p>}</div>;
+}
+export default function DietPlans() { return <ResourcePage title="Diet plans" eyebrow="Personalization" description="Review saved recommendations and generate nutrition plans from member profiles." endpoint="diet-plans/" action={<GenerateDiet />} columns={[{ key: "id", label: "ID" }, { key: "member", label: "Member" }, { key: "name", label: "Plan" }, { key: "goal", label: "Goal" }, { key: "calories_target", label: "Calories" }, { key: "meals", label: "Meals", render: (row) => row.meals?.length ?? 0 }]} />; }
