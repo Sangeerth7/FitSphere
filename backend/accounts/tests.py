@@ -282,3 +282,88 @@ class DietPlanAPITests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertTrue(response.data["diet_plan_id"])
+
+
+class TrainerAPITests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+		self.admin_user = get_user_model().objects.create_user(
+			username="trainer-admin",
+			password="test-password",
+			role="admin",
+		)
+		self.member_user = get_user_model().objects.create_user(
+			username="trainer-member",
+			password="test-password",
+			role="member",
+		)
+		self.trainer_user = get_user_model().objects.create_user(
+			username="existing-trainer",
+			password="test-password",
+			role="trainer",
+		)
+		self.new_trainer_user = get_user_model().objects.create_user(
+			username="new-trainer",
+			password="test-password",
+			role="trainer",
+		)
+		self.trainer = Trainer.objects.create(
+			user=self.trainer_user,
+			specialization="Strength training",
+			experience=5,
+			qualification="Certified trainer",
+			salary=30000,
+		)
+
+	def test_authenticated_user_can_list_and_retrieve_trainers(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		list_response = self.client.get(reverse("trainer-list"))
+		detail_response = self.client.get(
+			reverse("trainer-detail", kwargs={"pk": self.trainer.id})
+		)
+
+		self.assertEqual(list_response.status_code, 200)
+		self.assertEqual(detail_response.status_code, 200)
+		self.assertEqual(detail_response.data["specialization"], "Strength training")
+
+	def test_admin_can_create_update_and_delete_trainer(self):
+		self.client.force_authenticate(user=self.admin_user)
+		create_response = self.client.post(
+			reverse("trainer-list"),
+			{
+				"user": self.new_trainer_user.id,
+				"specialization": "Mobility",
+				"experience": 3,
+				"qualification": "Coach",
+				"salary": "25000",
+			},
+		)
+
+		self.assertEqual(create_response.status_code, 201)
+
+		update_response = self.client.patch(
+			reverse("trainer-detail", kwargs={"pk": self.trainer.id}),
+			{"specialization": "Mobility"},
+		)
+		delete_response = self.client.delete(
+			reverse("trainer-detail", kwargs={"pk": self.trainer.id})
+		)
+
+		self.assertEqual(update_response.status_code, 200)
+		self.assertEqual(delete_response.status_code, 204)
+
+	def test_non_admin_cannot_mutate_trainers(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		response = self.client.patch(
+			reverse("trainer-detail", kwargs={"pk": self.trainer.id}),
+			{"specialization": "Blocked"},
+		)
+
+		self.assertEqual(response.status_code, 403)
+
+	def test_unauthenticated_user_cannot_list_trainers(self):
+		response = self.client.get(reverse("trainer-list"))
+
+		self.assertEqual(response.status_code, 401)
