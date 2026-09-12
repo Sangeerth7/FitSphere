@@ -72,6 +72,7 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = MembershipPlan
         fields = "__all__"
+        read_only_fields = ["created_at", "updated_at"]
 
 
 class MembershipEnrollmentSerializer(serializers.ModelSerializer):

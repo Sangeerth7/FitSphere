@@ -96,13 +96,14 @@ class TrainerDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [IsAuthenticated()]
 
 class MembershipPlanViewSet(viewsets.ModelViewSet):
-    queryset = MembershipPlan.objects.all()
+    queryset = MembershipPlan.objects.order_by("id")
     serializer_class = MembershipPlanSerializer
     permission_classes = [IsAdmin]
 
 class MembershipEnrollmentViewSet(viewsets.ModelViewSet):
-    queryset = MembershipEnrollment.objects.all()
+    queryset = MembershipEnrollment.objects.select_related("member", "plan").order_by("-created_at")
     serializer_class = MembershipEnrollmentSerializer
+    permission_classes = [IsAuthenticated]
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()

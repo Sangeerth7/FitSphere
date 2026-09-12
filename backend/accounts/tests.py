@@ -3,7 +3,15 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from .models import DietMeal, DietPlan, Exercise, Member, Trainer, WorkoutPlan
+from .models import (
+	DietMeal,
+	DietPlan,
+	Exercise,
+	Member,
+	MembershipPlan,
+	Trainer,
+	WorkoutPlan,
+)
 from .services.diet_recommender import (
 	RecommendationInputError,
 	calculate_calorie_target,
@@ -367,3 +375,96 @@ class TrainerAPITests(TestCase):
 		response = self.client.get(reverse("trainer-list"))
 
 		self.assertEqual(response.status_code, 401)
+
+
+class MembershipAPITests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+		self.admin_user = get_user_model().objects.create_user(
+			username="membership-admin",
+			password="test-password",
+			role="admin",
+		)
+		self.member_user = get_user_model().objects.create_user(
+			username="membership-member",
+			password="test-password",
+			role="member",
+		)
+		self.member = Member.objects.create(user=self.member_user)
+		self.plan = MembershipPlan.objects.create(
+			name="Quarterly",
+			price="1500.00",
+			duration_months=3,
+			description="Quarterly access",
+		)
+
+	def test_admin_can_create_list_retrieve_update_and_delete_plan(self):
+		self.client.force_authenticate(user=self.admin_user)
+		create_response = self.client.post(
+			reverse("plans-list"),
+			{
+				"name": "Annual",
+				"price": "5000.00",
+				"duration_months": 12,
+				"description": "Annual access",
+			},
+		)
+
+		self.assertEqual(create_response.status_code, 201)
+		plan_id = create_response.data["id"]
+		self.assertEqual(self.client.get(reverse("plans-list")).status_code, 200)
+		self.assertEqual(
+			self.client.get(reverse("plans-detail", kwargs={"pk": plan_id})).status_code,
+			200,
+		)
+		self.assertEqual(
+			self.client.patch(
+				reverse("plans-detail", kwargs={"pk": plan_id}),
+				{"price": "5500.00"},
+			).status_code,
+			200,
+		)
+		self.assertEqual(
+			self.client.delete(reverse("plans-detail", kwargs={"pk": plan_id})).status_code,
+			204,
+		)
+
+	def test_non_admin_cannot_mutate_plans(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		response = self.client.post(
+			reverse("plans-list"),
+			{"name": "Blocked", "price": "1000", "duration_months": 1},
+		)
+
+		self.assertEqual(response.status_code, 403)
+
+	def test_member_can_create_enrollment_and_end_date_is_calculated(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		response = self.client.post(
+			reverse("enrollments-list"),
+			{"member": self.member.id, "plan": self.plan.id, "start_date": "2026-09-12"},
+		)
+
+		self.assertEqual(response.status_code, 201)
+		self.assertEqual(response.data["end_date"], "2026-12-12")
+
+	def test_invalid_member_or_plan_returns_validation_error(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		invalid_member = self.client.post(
+			reverse("enrollments-list"),
+			{"member": 99999, "plan": self.plan.id, "start_date": "2026-09-12"},
+		)
+		invalid_plan = self.client.post(
+			reverse("enrollments-list"),
+			{"member": self.member.id, "plan": 99999, "start_date": "2026-09-12"},
+		)
+
+		self.assertEqual(invalid_member.status_code, 400)
+		self.assertEqual(invalid_plan.status_code, 400)
+
+	def test_unauthenticated_user_cannot_access_membership_apis(self):
+		self.assertEqual(self.client.get(reverse("plans-list")).status_code, 401)
+		self.assertEqual(self.client.get(reverse("enrollments-list")).status_code, 401)
