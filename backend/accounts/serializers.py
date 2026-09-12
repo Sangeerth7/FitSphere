@@ -98,7 +98,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = "__all__"
-        read_only_fields = ["amount"]
+        read_only_fields = ["amount", "payment_date", "created_at"]
 
     def create(self, validated_data):
         enrollment = validated_data["enrollment"]

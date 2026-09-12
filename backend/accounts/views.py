@@ -106,8 +106,9 @@ class MembershipEnrollmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
+    queryset = Payment.objects.select_related("enrollment__member", "enrollment__plan").order_by("-created_at")
     serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
 
 class ExerciseViewSet(viewsets.ModelViewSet):
     queryset = Exercise.objects.all()

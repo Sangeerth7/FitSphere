@@ -8,7 +8,9 @@ from .models import (
 	DietPlan,
 	Exercise,
 	Member,
+	MembershipEnrollment,
 	MembershipPlan,
+	Payment,
 	Trainer,
 	WorkoutPlan,
 )
@@ -468,3 +470,77 @@ class MembershipAPITests(TestCase):
 	def test_unauthenticated_user_cannot_access_membership_apis(self):
 		self.assertEqual(self.client.get(reverse("plans-list")).status_code, 401)
 		self.assertEqual(self.client.get(reverse("enrollments-list")).status_code, 401)
+
+
+class PaymentAPITests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+		self.member_user = get_user_model().objects.create_user(
+			username="payment-member",
+			password="test-password",
+			role="member",
+		)
+		self.member = Member.objects.create(user=self.member_user)
+		self.plan = MembershipPlan.objects.create(
+			name="Payment Plan",
+			price="1750.00",
+			duration_months=3,
+		)
+		self.enrollment = MembershipEnrollment.objects.create(
+			member=self.member,
+			plan=self.plan,
+			start_date="2026-09-12",
+			end_date="2026-12-12",
+		)
+
+	def test_authenticated_user_can_create_payment_with_derived_amount(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		response = self.client.post(
+			reverse("payments-list"),
+			{
+				"enrollment": self.enrollment.id,
+				"amount": "1.00",
+				"payment_method": "upi",
+				"status": "paid",
+			},
+		)
+
+		self.assertEqual(response.status_code, 201)
+		self.assertEqual(response.data["amount"], "1750.00")
+
+	def test_payment_list_and_retrieve_require_authentication(self):
+		payment = Payment.objects.create(
+			enrollment=self.enrollment,
+			amount=self.plan.price,
+			payment_method="cash",
+			status="pending",
+		)
+
+		self.assertEqual(self.client.get(reverse("payments-list")).status_code, 401)
+		self.client.force_authenticate(user=self.member_user)
+		self.assertEqual(self.client.get(reverse("payments-list")).status_code, 200)
+		self.assertEqual(
+			self.client.get(reverse("payments-detail", kwargs={"pk": payment.id})).status_code,
+			200,
+		)
+
+	def test_invalid_enrollment_returns_validation_error(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		response = self.client.post(
+			reverse("payments-list"),
+			{"enrollment": 99999, "payment_method": "card", "status": "paid"},
+		)
+
+		self.assertEqual(response.status_code, 400)
+
+	def test_payment_methods_and_statuses_are_validated(self):
+		self.client.force_authenticate(user=self.member_user)
+
+		response = self.client.post(
+			reverse("payments-list"),
+			{"enrollment": self.enrollment.id, "payment_method": "bitcoin", "status": "paid"},
+		)
+
+		self.assertEqual(response.status_code, 400)
