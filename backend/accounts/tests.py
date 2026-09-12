@@ -4,6 +4,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from .models import (
+	Attendance,
 	DietMeal,
 	DietPlan,
 	Exercise,
@@ -544,3 +545,82 @@ class PaymentAPITests(TestCase):
 		)
 
 		self.assertEqual(response.status_code, 400)
+
+
+class AttendanceAPITests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+		self.user = get_user_model().objects.create_user(
+			username="attendance-member",
+			password="test-password",
+			role="member",
+		)
+		self.member = Member.objects.create(user=self.user)
+
+	def test_authenticated_user_can_mark_attendance(self):
+		self.client.force_authenticate(user=self.user)
+
+		response = self.client.post(
+			reverse("attendance-list"),
+			{
+				"member": self.member.id,
+				"check_in": "09:00:00",
+				"status": "present",
+			},
+		)
+
+		self.assertEqual(response.status_code, 201)
+		self.assertEqual(response.data["member"], self.member.id)
+		self.assertEqual(response.data["check_in"], "09:00:00")
+		self.assertIsNotNone(response.data["date"])
+
+	def test_attendance_can_be_listed_and_retrieved(self):
+		attendance = Attendance.objects.create(
+			member=self.member,
+			check_in="09:00:00",
+			check_out="17:00:00",
+			status="present",
+		)
+		self.client.force_authenticate(user=self.user)
+
+		list_response = self.client.get(reverse("attendance-list"))
+		detail_response = self.client.get(
+			reverse("attendance-detail", kwargs={"pk": attendance.id})
+		)
+
+		self.assertEqual(list_response.status_code, 200)
+		self.assertEqual(detail_response.status_code, 200)
+		self.assertEqual(detail_response.data["check_out"], "17:00:00")
+
+	def test_attendance_can_be_updated_and_deleted(self):
+		attendance = Attendance.objects.create(
+			member=self.member,
+			check_in="09:00:00",
+			status="present",
+		)
+		self.client.force_authenticate(user=self.user)
+
+		update_response = self.client.patch(
+			reverse("attendance-detail", kwargs={"pk": attendance.id}),
+			{"check_out": "17:00:00", "status": "present"},
+		)
+		delete_response = self.client.delete(
+			reverse("attendance-detail", kwargs={"pk": attendance.id})
+		)
+
+		self.assertEqual(update_response.status_code, 200)
+		self.assertEqual(delete_response.status_code, 204)
+
+	def test_invalid_member_returns_validation_error(self):
+		self.client.force_authenticate(user=self.user)
+
+		response = self.client.post(
+			reverse("attendance-list"),
+			{"member": 99999, "check_in": "09:00:00", "status": "present"},
+		)
+
+		self.assertEqual(response.status_code, 400)
+
+	def test_unauthenticated_user_cannot_access_attendance(self):
+		self.assertEqual(self.client.get(reverse("attendance-list")).status_code, 401)
+

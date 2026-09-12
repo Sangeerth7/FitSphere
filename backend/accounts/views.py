@@ -119,8 +119,9 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutPlanSerializer
 
 class AttendanceViewSet(viewsets.ModelViewSet):
-    queryset = Attendance.objects.all()
+    queryset = Attendance.objects.select_related("member").order_by("-date", "-id")
     serializer_class = AttendanceSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class MemberViewSet(viewsets.ModelViewSet):
