@@ -5,13 +5,9 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
-from .services.diet_recommender import (
-    RecommendationInputError,
-    recommend_diet,
-)
-from .services.workout_recommender import (
-    WorkoutRecommendationError,
-    recommend_workout,
+from .services.ai_recommender import (
+    recommend_diet_with_ai,
+    recommend_workout_with_ai,
 )
 
 from .models import (
@@ -176,8 +172,8 @@ class GenerateDietPlanView(APIView):
             )
 
         try:
-            diet_plan = recommend_diet(member)
-        except RecommendationInputError as error:
+            diet_plan, source = recommend_diet_with_ai(member)
+        except ValueError as error:
             return Response(
                 {"error": str(error)},
                 status=400,
@@ -189,6 +185,7 @@ class GenerateDietPlanView(APIView):
             "member": member.user.username,
             "plan_name": diet_plan.name,
             "goal": diet_plan.goal,
+            "source": source,
         })
 
 class GenerateWorkoutPlanView(APIView):
@@ -202,8 +199,8 @@ class GenerateWorkoutPlanView(APIView):
             )
 
         try:
-            workout_plan = recommend_workout(member)
-        except WorkoutRecommendationError as error:
+            workout_plan, source = recommend_workout_with_ai(member)
+        except ValueError as error:
             return Response(
                 {"error": str(error)},
                 status=400,
@@ -215,4 +212,5 @@ class GenerateWorkoutPlanView(APIView):
             "member": member.user.username,
             "plan_name": workout_plan.title,
             "exercise_count": workout_plan.exercises.count(),
+            "source": source,
         })

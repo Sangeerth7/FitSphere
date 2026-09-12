@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
+from unittest.mock import patch
 
 from .models import (
 	Attendance,
@@ -24,6 +26,16 @@ from .services.workout_recommender import (
 	WorkoutRecommendationError,
 	recommend_workout,
 )
+from .services.ai_recommender import (
+	recommend_diet_with_ai,
+	recommend_workout_with_ai,
+)
+from .services.ollama_client import (
+	OllamaResponseError,
+	OllamaUnavailableError,
+	generate_json,
+)
+from .services.recommendation_schemas import RecommendationValidationError, validate_diet_recommendation
 
 
 class DietRecommendationTests(TestCase):
@@ -623,4 +635,157 @@ class AttendanceAPITests(TestCase):
 
 	def test_unauthenticated_user_cannot_access_attendance(self):
 		self.assertEqual(self.client.get(reverse("attendance-list")).status_code, 401)
+
+
+class AIRecommendationTests(TestCase):
+	def setUp(self):
+		member_user = get_user_model().objects.create_user(
+			username="ai-member",
+			password="test-password",
+		)
+		trainer_user = get_user_model().objects.create_user(
+			username="ai-trainer",
+			password="test-password",
+			role="trainer",
+		)
+		self.member = Member.objects.create(
+			user=member_user,
+			age=30,
+			height=180,
+			weight=80,
+			gender="male",
+			goal="weight_loss",
+			activity_level="moderate",
+			fitness_level="intermediate",
+			diet_preference="vegetarian",
+			dietary_restrictions="",
+		)
+		self.trainer = Trainer.objects.create(
+			user=trainer_user,
+			specialization="Strength training",
+			experience=5,
+			qualification="Certified trainer",
+			salary=30000,
+		)
+
+	@staticmethod
+	def diet_payload(food="Oats with banana"):
+		return {
+			"type": "diet",
+			"goal": "weight_loss",
+			"calories_target": 2100,
+			"meals": [
+				{"meal_type": "breakfast", "food": food, "quantity": "1 serving", "notes": ""},
+				{"meal_type": "lunch", "food": "Rice and dal", "quantity": "1 plate", "notes": ""},
+			],
+		}
+
+	@staticmethod
+	def workout_payload():
+		return {
+			"type": "workout",
+			"goal": "weight_loss",
+			"weekly_days": 3,
+			"exercises": [
+				{"day": 1, "name": "Bodyweight squat", "sets": 3, "reps": 12, "rest_seconds": 60, "notes": "Controlled form"},
+			],
+		}
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_successful_ai_diet_recommendation_is_saved(self, generate_json):
+		generate_json.return_value = self.diet_payload()
+
+		plan, source = recommend_diet_with_ai(self.member)
+
+		self.assertEqual(source, "ollama")
+		self.assertEqual(plan.calories_target, 2100)
+		self.assertEqual(plan.meals.count(), 2)
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_successful_ai_workout_recommendation_is_saved(self, generate_json):
+		generate_json.return_value = self.workout_payload()
+
+		plan, source = recommend_workout_with_ai(self.member)
+
+		self.assertEqual(source, "ollama")
+		self.assertEqual(plan.exercises.count(), 1)
+		self.assertEqual(plan.exercises.first().sets, 3)
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_invalid_json_uses_rule_based_diet_fallback(self, generate_json):
+		generate_json.side_effect = OllamaResponseError("bad JSON")
+
+		plan, source = recommend_diet_with_ai(self.member)
+
+		self.assertEqual(source, "rule_based")
+		self.assertEqual(plan.meals.count(), 5)
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_invalid_schema_uses_rule_based_workout_fallback(self, generate_json):
+		generate_json.return_value = {"type": "workout", "goal": "weight_loss", "weekly_days": 99, "exercises": []}
+
+		plan, source = recommend_workout_with_ai(self.member)
+
+		self.assertEqual(source, "rule_based")
+		self.assertEqual(plan.exercises.count(), 6)
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_unavailable_ollama_uses_rule_based_diet_fallback(self, generate_json):
+		generate_json.side_effect = OllamaUnavailableError("offline")
+
+		plan, source = recommend_diet_with_ai(self.member)
+
+		self.assertEqual(source, "rule_based")
+		self.assertIn("Rule-based", plan.description)
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_timeout_uses_rule_based_workout_fallback(self, generate_json):
+		generate_json.side_effect = OllamaUnavailableError("timeout")
+
+		plan, source = recommend_workout_with_ai(self.member)
+
+		self.assertEqual(source, "rule_based")
+		self.assertEqual(plan.exercises.count(), 6)
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_restricted_food_is_rejected_before_ai_write(self, generate_json):
+		self.member.dietary_restrictions = "dairy"
+		self.member.save(update_fields=["dietary_restrictions"])
+		generate_json.return_value = self.diet_payload("Oats with milk")
+
+		plan, source = recommend_diet_with_ai(self.member)
+
+		self.assertEqual(source, "rule_based")
+		self.assertEqual(DietPlan.objects.count(), 1)
+		self.assertNotIn("milk", " ".join(plan.meals.values_list("food", flat=True)).lower())
+
+	def test_safe_numeric_validation_rejects_invalid_ai_calories(self):
+		with self.assertRaises(RecommendationValidationError):
+			validate_diet_recommendation(
+				{**self.diet_payload(), "calories_target": 99999},
+				{"dietary_restrictions": []},
+			)
+
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=True)
+	@patch("accounts.services.ai_recommender.generate_json")
+	def test_invalid_ai_response_does_not_write_partial_plan(self, generate_json):
+		generate_json.return_value = {"type": "diet", "goal": "weight_loss", "calories_target": 2100, "meals": [{"food": "Missing meal type"}]}
+
+		plan, source = recommend_diet_with_ai(self.member)
+
+		self.assertEqual(source, "rule_based")
+		self.assertEqual(DietPlan.objects.count(), 1)
+		self.assertEqual(plan.name, "Weight Loss Diet Plan")
+
+	@patch("accounts.services.ollama_client.urlopen", side_effect=TimeoutError)
+	def test_ollama_timeout_is_converted_to_unavailable_error(self, urlopen):
+		with self.assertRaises(OllamaUnavailableError):
+			generate_json("test prompt")
 
