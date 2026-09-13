@@ -205,6 +205,7 @@ class WorkoutRecommendationTests(TestCase):
 		with self.assertRaises(WorkoutRecommendationError):
 			recommend_workout(self.member)
 
+	@override_settings(AI_RECOMMENDATIONS_ENABLED=False)
 	def test_generate_workout_endpoint_returns_plan_summary(self):
 		response = self.client.post(
 			reverse("generate-workout", kwargs={"member_id": self.member.id}),
@@ -635,6 +636,53 @@ class AttendanceAPITests(TestCase):
 
 	def test_unauthenticated_user_cannot_access_attendance(self):
 		self.assertEqual(self.client.get(reverse("attendance-list")).status_code, 401)
+
+
+class CorsLoginTests(TestCase):
+	def setUp(self):
+		self.user = get_user_model().objects.create_user(
+			username="cors-member",
+			password="test-password",
+			role="member",
+		)
+
+	def test_login_preflight_allows_only_frontend_origin(self):
+		response = self.client.options(
+			reverse("login"),
+			HTTP_ORIGIN="http://localhost:5173",
+			HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+			HTTP_ACCESS_CONTROL_REQUEST_HEADERS="content-type",
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(
+			response["Access-Control-Allow-Origin"],
+			"http://localhost:5173",
+		)
+
+	def test_login_response_allows_frontend_origin_and_returns_jwt(self):
+		response = self.client.post(
+			reverse("login"),
+			{"username": "cors-member", "password": "test-password"},
+			HTTP_ORIGIN="http://localhost:5173",
+			content_type="application/json",
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(
+			response["Access-Control-Allow-Origin"],
+			"http://localhost:5173",
+		)
+		self.assertIn("access", response.json())
+
+	def test_other_origins_are_not_allowed(self):
+		response = self.client.options(
+			reverse("login"),
+			HTTP_ORIGIN="http://localhost:5174",
+			HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+		)
+
+		self.assertNotIn("Access-Control-Allow-Origin", response)
 
 
 class AIRecommendationTests(TestCase):
